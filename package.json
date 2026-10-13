@@ -1,0 +1,16 @@
+{
+  "name": "sourcecheck",
+  "version": "0.1.0",
+  "description": "Checks an Anduin smart form (Form Builder JSON) against its source PDFs: wording differences, missing PDF content, form-only text and swapped checkbox mappings.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tests/demo.test.mjs",
+    "demo": "python3 tools/make_demo.py"
+  },
+  "devDependencies": {
+    "pdfjs-dist": "4.10.38"
+  },
+  "license": "MIT"
+}

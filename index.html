@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SourceCheck — Form vs PDF</title>
+  <meta name="description" content="Checks an Anduin smart form against its source PDFs: wording differences, missing PDF content, form-only text and swapped checkbox mappings." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23155eef'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8"/><path d="M9 16.5l4.5 4.5L23 11"/></svg></span>
+      <div>
+        <div class="brand-name">SourceCheck</div>
+        <div class="brand-tag">Is the form the PDF? Content QA for Digitization</div>
+      </div>
+    </div>
+    <nav class="top-actions">
+      <button class="btn ghost" id="btn-new" hidden><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="lbl">New check</span></button>
+      <button class="btn ghost" id="btn-ai-settings"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 15l.8 1.9 1.9.8-1.9.8L19 20.4l-.8-1.9-1.9-.8 1.9-.8z"/></svg><span class="lbl">AI settings</span></button>
+      <a class="btn ghost" href="https://github.com/vando-create/sourcecheck" target="_blank" rel="noopener"><svg class="i" viewBox="0 0 24 24"><path d="M12 2a10 10 0 00-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.7.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 015 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0012 2z"/></svg><span class="lbl">GitHub</span></a>
+    </nav>
+  </header>
+
+  <!-- ============================== SETUP ============================== -->
+  <main id="setup" class="setup">
+    <section class="hero">
+      <h1>Check a smart form against its source PDFs</h1>
+      <p>Drop the exported form JSON and the sub docs. SourceCheck lines up every question, option, paragraph and footnote with the PDF text and flags what differs, what is missing, and checkboxes that print into the wrong box. Runs in your browser; files are not uploaded.</p>
+    </section>
+
+    <section class="steps">
+      <div class="step">
+        <div class="step-head"><span class="num">1</span><div><h2>Form JSON</h2><p>Form Builder export. It already carries the PDF annotation layer.</p></div></div>
+        <label class="drop" id="drop-form" tabindex="0">
+          <input type="file" id="in-form" accept=".json,application/json" hidden />
+          <svg class="drop-ic" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9.5 13l-1.5 1.5L9.5 16M14.5 13l1.5 1.5-1.5 1.5"/></svg>
+          <span class="drop-title">Drop form.json</span>
+          <span class="drop-sub">or click to choose</span>
+        </label>
+        <div class="file-card" id="form-card" hidden></div>
+      </div>
+
+      <div class="step">
+        <div class="step-head"><span class="num">2</span><div><h2>Source PDFs</h2><p>Every sub doc the form was built from. Each is matched to its annotated PDF by name.</p></div></div>
+        <label class="drop" id="drop-pdf" tabindex="0">
+          <input type="file" id="in-pdf" accept=".pdf,application/pdf" multiple hidden />
+          <svg class="drop-ic" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M12 11v6M9 14l3-3 3 3"/></svg>
+          <span class="drop-title">Drop PDFs</span>
+          <span class="drop-sub">several at once is fine</span>
+        </label>
+        <div class="pdf-table" id="pdf-table" hidden></div>
+      </div>
+    </section>
+
+    <div class="run-row">
+      <button class="btn primary lg" id="btn-run" disabled>Run check</button>
+      <span class="run-hint" id="run-hint">Add a form JSON and at least one PDF.</span>
+      <span class="spacer"></span>
+      <button class="btn" id="btn-demo"><svg class="i" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9z"/></svg>Try the demo</button>
+    </div>
+    <p class="demo-note muted">The demo uses a made-up fund, “Northwind Credit Fund I”, with seven issues planted in the form: swapped Yes/No boxes, Regulation D changed to S, $200,000 changed to $300,000, an edited footnote, a missing AML paragraph, a helper message, and one acceptable wording change.</p>
+
+    <section class="how">
+      <div class="how-item"><span class="tag t-mis">Text differs</span><p>Form wording found in the PDF but changed: dropped words, altered terms, wrong footnotes.</p></div>
+      <div class="how-item"><span class="tag t-miss">Missing in form</span><p>PDF text on a digitized page that no form element carries.</p></div>
+      <div class="how-item"><span class="tag t-only">Form-only text</span><p>Text in the form that the PDFs do not contain: custom language or rewrites to verify against the checklist.</p></div>
+      <div class="how-item"><span class="tag t-anchor">Swapped mapping</span><p>A checkbox option that prints next to another option's text in the PDF, such as Yes and No mapped the wrong way round.</p></div>
+    </section>
+  </main>
+
+  <!-- ============================== PROGRESS ============================== -->
+  <div class="progress-wrap" id="progress" hidden>
+    <div class="progress-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <h3 id="prog-title">Reading PDFs…</h3>
+      <div class="bar"><div class="bar-fill" id="prog-bar"></div></div>
+      <p id="prog-sub" class="muted"></p>
+    </div>
+  </div>
+
+  <!-- ============================== RESULTS ============================== -->
+  <main id="results" class="results" hidden>
+    <section class="summary" id="summary"></section>
+
+    <section class="toolbar">
+      <div class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Search text, widget key, page…" /></div>
+      <div class="chips" id="sev-chips"></div>
+      <select id="f-pdf" class="select"></select>
+      <select id="f-verdict" class="select">
+        <option value="">All verdicts</option>
+        <option value="bug">AI: bug</option>
+        <option value="needs_review">AI: needs review</option>
+        <option value="acceptable">AI: acceptable</option>
+        <option value="none">Not reviewed by AI</option>
+        <option value="mine-bug">Marked bug</option>
+        <option value="mine-ok">Marked OK</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="btn" id="btn-ai-run"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/></svg>AI triage</button>
+      <div class="menu">
+        <button class="btn" id="btn-export">Export ▾</button>
+        <div class="menu-pop" id="export-pop" hidden>
+          <button data-x="csv">Download CSV</button>
+          <button data-x="md">Copy table for ClickUp</button>
+          <button data-x="json">Download full report (JSON)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="split">
+      <aside class="list" id="list" aria-label="Findings"></aside>
+      <article class="detail" id="detail"><div class="empty">Select a finding to see the comparison.</div></article>
+    </section>
+  </main>
+
+  <!-- ============================== AI SETTINGS ============================== -->
+  <dialog id="dlg-ai" class="dlg">
+    <form method="dialog">
+      <h3>AI triage settings</h3>
+      <p class="muted">AI triage sends the selected findings (short text snippets and diffs, not the whole files) to Claude, which marks each one as a likely bug or an acceptable form adaptation. Your key stays in this browser. Check that your team allows sending client document text to an external AI service.</p>
+      <label class="fld">Anthropic API key<input type="password" id="ai-key" placeholder="sk-ant-…" autocomplete="off" /></label>
+      <label class="fld">Model<input id="ai-model" list="models" /></label>
+      <datalist id="models"><option value="claude-sonnet-4-5"></option><option value="claude-haiku-4-5"></option><option value="claude-opus-4-1"></option></datalist>
+      <label class="chk"><input type="checkbox" id="ai-remember" /> Remember key on this device</label>
+      <div class="dlg-actions"><button class="btn" value="cancel">Cancel</button><button class="btn primary" id="ai-save" value="save">Save</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

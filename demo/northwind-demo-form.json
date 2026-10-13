@@ -1,0 +1,476 @@
+{
+ "form": {
+  "namespaceFormSchemaMap": {
+   "main": {
+    "schema": {
+     "type": "object",
+     "properties": [
+      {
+       "name": "page1",
+       "type": "object",
+       "title": "Investor Questionnaire",
+       "properties": [
+        {
+         "name": "header1",
+         "type": "null"
+        },
+        {
+         "name": "investor_name",
+         "type": "string"
+        },
+        {
+         "name": "usperson",
+         "type": "string"
+        },
+        {
+         "name": "accredited_intro",
+         "type": "null"
+        },
+        {
+         "name": "accredited",
+         "type": "array"
+        },
+        {
+         "name": "attach",
+         "type": "array"
+        }
+       ]
+      },
+      {
+       "name": "page2",
+       "type": "object",
+       "title": "Source of Wealth & Signature",
+       "properties": [
+        {
+         "name": "helper",
+         "type": "null"
+        },
+        {
+         "name": "sourceofwealth",
+         "type": "array"
+        },
+        {
+         "name": "reject",
+         "type": "null"
+        },
+        {
+         "name": "signature",
+         "type": "null"
+        }
+       ]
+      }
+     ]
+    },
+    "uiSchema": {
+     "page1": {
+      "ui:widget": "Page"
+     },
+     "header1": {
+      "ui:widget": "Header",
+      "ui:heading": "INVESTOR QUESTIONNAIRE",
+      "ui:subtitle": "Northwind Credit Fund I, L.P."
+     },
+     "investor_name": {
+      "ui:widget": "TextBox",
+      "ui:formattedText": "<p>1. Name of Investor <span style=\"color: rgb(219, 55, 55);\">*</span></p>",
+      "ui:pdfMapping": [
+       "investor_name"
+      ]
+     },
+     "usperson": {
+      "ui:widget": "Radio",
+      "ui:formattedText": "<p>2. Is the Investor a “U.S. Person”<span data-title=\"&lt;p&gt;“U.S. Person” has the meaning given in Rule 902 under the Securities Act and includes any natural person resident in the United States.&lt;/p&gt;\">FOOT_NOTE_HERE</span>?</p>",
+      "ui:pdfMapping": [
+       "usperson"
+      ],
+      "ui:multipleOption": {
+       "options": [
+        [
+         "yes",
+         {
+          "pdfMappings": [
+           "no_usperson"
+          ],
+          "formattedText": "Yes"
+         }
+        ],
+        [
+         "no",
+         {
+          "pdfMappings": [
+           "yes_usperson"
+          ],
+          "formattedText": "No"
+         }
+        ]
+       ]
+      }
+     },
+     "accredited_intro": {
+      "ui:widget": "Paragraph",
+      "ui:formattedText": "<p>3. The Investor represents and warrants that it is an “accredited investor” within the meaning of Regulation S under the Securities Act and has checked the box or boxes below for each statement that applies to it.</p>"
+     },
+     "accredited": {
+      "ui:widget": "MultipleCheckbox",
+      "ui:formattedText": "<p>Please check all that apply:</p>",
+      "ui:multipleOption": {
+       "options": [
+        [
+         "networth",
+         {
+          "pdfMappings": [
+           "networth"
+          ],
+          "formattedText": "The Investor’s net worth, alone or together with a spouse, exceeds $1,000,000, excluding the value of the primary residence."
+         }
+        ],
+        [
+         "income",
+         {
+          "pdfMappings": [
+           "income"
+          ],
+          "formattedText": "The Investor had individual income in excess of $300,000 in each of the two most recent years and reasonably expects the same level of income in the current year."
+         }
+        ],
+        [
+         "licensed",
+         {
+          "pdfMappings": [
+           "licensed"
+          ],
+          "formattedText": "The Investor holds in good standing a Series 7, Series 65 or Series 82 license."
+         }
+        ]
+       ]
+      }
+     },
+     "attach": {
+      "ui:widget": "MultipleCheckbox",
+      "ui:multipleOption": {
+       "options": [
+        [
+         "attach",
+         {
+          "pdfMappings": [
+           "attach"
+          ],
+          "formattedText": "Check this box if you wish to attach a separate sheet listing additional authorized signatories."
+         }
+        ]
+       ]
+      }
+     },
+     "page2": {
+      "ui:widget": "Page"
+     },
+     "helper": {
+      "ui:widget": "Paragraph",
+      "ui:wellType": "Info",
+      "ui:formattedText": "<p>Please answer every question on this page before continuing to the signature step.</p>"
+     },
+     "sourceofwealth": {
+      "ui:widget": "MultipleCheckbox",
+      "ui:formattedText": "<p>4. Source of Wealth (check all that apply)</p>",
+      "ui:multipleOption": {
+       "options": [
+        [
+         "salary",
+         {
+          "pdfMappings": [
+           "salary"
+          ],
+          "formattedText": "Salary / bonus"
+         }
+        ],
+        [
+         "investments",
+         {
+          "pdfMappings": [
+           "investments"
+          ],
+          "formattedText": "Sale of investments"
+         }
+        ],
+        [
+         "inheritance",
+         {
+          "pdfMappings": [
+           "inheritance"
+          ],
+          "formattedText": "Inheritance / Gift"
+         }
+        ]
+       ]
+      }
+     },
+     "reject": {
+      "ui:widget": "Paragraph",
+      "ui:formattedText": "<p>6. The Investor acknowledges that the General Partner may reject this subscription in whole or in part in its sole discretion.</p>"
+     },
+     "signature": {
+      "ui:widget": "Signature",
+      "ui:signature": [
+       {
+        "mapping": "sig_investor",
+        "signatureType": "Signature"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "rules": [],
+  "defaultNamespace": "main"
+ },
+ "uploadedPdf": [
+  [
+   "demo.fil000001",
+   {
+    "name": "Northwind Credit Fund I - Subscription Booklet.pdf",
+    "fields": [
+     {
+      "key": "investor_name",
+      "widgetType": "TextBox",
+      "position": {
+       "page": 1,
+       "xPos": 0.3022875816993464,
+       "yPos": 0.16666666666666666,
+       "width": 0.46568627450980393,
+       "height": 0.020202020202020204
+      },
+      "radioOptions": []
+     },
+     {
+      "key": "usperson",
+      "widgetType": "Radio",
+      "position": {
+       "page": 1,
+       "xPos": 0.5228758169934641,
+       "yPos": 0.21085858585858586,
+       "width": 0.016339869281045753,
+       "height": 0.012626262626262626
+      },
+      "radioOptions": [
+       [
+        "yes_usperson",
+        {
+         "page": 1,
+         "xPos": 0.5228758169934641,
+         "yPos": 0.21085858585858586,
+         "width": 0.016339869281045753,
+         "height": 0.012626262626262626
+        }
+       ],
+       [
+        "no_usperson",
+        {
+         "page": 1,
+         "xPos": 0.6209150326797386,
+         "yPos": 0.21085858585858586,
+         "width": 0.016339869281045753,
+         "height": 0.012626262626262626
+        }
+       ]
+      ]
+     },
+     {
+      "key": "networth_group",
+      "widgetType": "MultipleCheckbox",
+      "position": {
+       "page": 1,
+       "xPos": 0.14705882352941177,
+       "yPos": 0.3194444444444444,
+       "width": 0.016339869281045753,
+       "height": 0.012626262626262626
+      },
+      "radioOptions": [],
+      "widget": {
+       "ui:multipleOption": {
+        "options": [
+         [
+          "networth",
+          {
+           "pdfMappings": [
+            "networth"
+           ]
+          }
+         ]
+        ]
+       }
+      }
+     },
+     {
+      "key": "income_group",
+      "widgetType": "MultipleCheckbox",
+      "position": {
+       "page": 1,
+       "xPos": 0.14705882352941177,
+       "yPos": 0.36237373737373735,
+       "width": 0.016339869281045753,
+       "height": 0.012626262626262626
+      },
+      "radioOptions": [],
+      "widget": {
+       "ui:multipleOption": {
+        "options": [
+         [
+          "income",
+          {
+           "pdfMappings": [
+            "income"
+           ]
+          }
+         ]
+        ]
+       }
+      }
+     },
+     {
+      "key": "licensed_group",
+      "widgetType": "MultipleCheckbox",
+      "position": {
+       "page": 1,
+       "xPos": 0.14705882352941177,
+       "yPos": 0.4053030303030303,
+       "width": 0.016339869281045753,
+       "height": 0.012626262626262626
+      },
+      "radioOptions": [],
+      "widget": {
+       "ui:multipleOption": {
+        "options": [
+         [
+          "licensed",
+          {
+           "pdfMappings": [
+            "licensed"
+           ]
+          }
+         ]
+        ]
+       }
+      }
+     },
+     {
+      "key": "attach_group",
+      "widgetType": "MultipleCheckbox",
+      "position": {
+       "page": 1,
+       "xPos": 0.11764705882352941,
+       "yPos": 0.44065656565656564,
+       "width": 0.016339869281045753,
+       "height": 0.012626262626262626
+      },
+      "radioOptions": [],
+      "widget": {
+       "ui:multipleOption": {
+        "options": [
+         [
+          "attach",
+          {
+           "pdfMappings": [
+            "attach"
+           ]
+          }
+         ]
+        ]
+       }
+      }
+     },
+     {
+      "key": "salary_group",
+      "widgetType": "MultipleCheckbox",
+      "position": {
+       "page": 2,
+       "xPos": 0.14705882352941177,
+       "yPos": 0.13005050505050506,
+       "width": 0.016339869281045753,
+       "height": 0.012626262626262626
+      },
+      "radioOptions": [],
+      "widget": {
+       "ui:multipleOption": {
+        "options": [
+         [
+          "salary",
+          {
+           "pdfMappings": [
+            "salary"
+           ]
+          }
+         ]
+        ]
+       }
+      }
+     },
+     {
+      "key": "investments_group",
+      "widgetType": "MultipleCheckbox",
+      "position": {
+       "page": 2,
+       "xPos": 0.14705882352941177,
+       "yPos": 0.1527777777777778,
+       "width": 0.016339869281045753,
+       "height": 0.012626262626262626
+      },
+      "radioOptions": [],
+      "widget": {
+       "ui:multipleOption": {
+        "options": [
+         [
+          "investments",
+          {
+           "pdfMappings": [
+            "investments"
+           ]
+          }
+         ]
+        ]
+       }
+      }
+     },
+     {
+      "key": "inheritance_group",
+      "widgetType": "MultipleCheckbox",
+      "position": {
+       "page": 2,
+       "xPos": 0.14705882352941177,
+       "yPos": 0.1755050505050505,
+       "width": 0.016339869281045753,
+       "height": 0.012626262626262626
+      },
+      "radioOptions": [],
+      "widget": {
+       "ui:multipleOption": {
+        "options": [
+         [
+          "inheritance",
+          {
+           "pdfMappings": [
+            "inheritance"
+           ]
+          }
+         ]
+        ]
+       }
+      }
+     },
+     {
+      "key": "sig_investor",
+      "widgetType": "Signature",
+      "position": {
+       "page": 2,
+       "xPos": 0.21241830065359477,
+       "yPos": 0.34595959595959597,
+       "width": 0.2777777777777778,
+       "height": 0.022727272727272728
+      },
+      "radioOptions": []
+     }
+    ]
+   }
+  ]
+ ],
+ "embeddedPdf": []
+}
