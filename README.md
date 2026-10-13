@@ -11,7 +11,7 @@
 
 An optional **AI triage** step sends the findings to Claude, which labels each one as a *likely bug*, an *acceptable form adaptation* (e.g. "circle" → "check", an added question title) or *needs review*, with a one-line reason and a suggested fix.
 
-**Live app:** https://vando-create.github.io/sourcecheck/ (click **Try the demo**: a fictional fund with 7 planted issues)
+**Live app:** https://sourcecheck-rho.vercel.app/ (click **Try the demo**: a fictional fund with 7 planted issues)
 
 ---
 
