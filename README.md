@@ -21,6 +21,14 @@ UI testing in the Digitization testing procedure (Testing 1) is about 4 points o
 
 On a real 4-sub-doc, 190-page-per-book fund form (1,800 widgets) the full check runs in about 15 seconds in the browser. On its first run it found a Yes/No pair whose PDF boxes were inverted in one sub doc.
 
+## Benchmark on a real form
+
+SourceCheck was run on a pre-testing export of a real 4-sub-doc fund form (about 1,800 widgets, 190-page sub docs) and compared with the bugs QA and DS logged in ClickUp during testing.
+
+- 134 tickets in total. 28 were about content, meaning wording, footnotes, missing text or swapped mappings. The others covered logic rules, layout, supporting documents and client change requests, which SourceCheck does not check.
+- **SourceCheck flagged the affected widget for 27 of those 28 content tickets.** That includes a Yes/No pair whose PDF boxes were inverted, footnotes using the U.S. definition in the non-U.S. sub docs, and a text block shared by four funds that matched only one fund's sub doc.
+- Full run time was about 15 seconds in the browser.
+
 ## How it works
 
 ```
@@ -34,9 +42,11 @@ PDFs ──────► PDF.js text extraction → words with page + position
               interruptions by other blocks (footnotes, page breaks) are filtered out.
               Changed numbers, negations and single-letter references raise severity.
 3. Coverage   PDF words on digitized pages (pages with mapped fields) not covered by any form block
-4. Anchors    for each option's mapped checkbox, read the PDF text beside the box. If it matches a
+4. Variants   a text that matches one sub doc but differs from another is flagged unless another
+              form element carries the other wording (fund-specific variants)
+5. Anchors    for each option's mapped checkbox, read the PDF text beside the box. If it matches a
               sibling option better than the option itself, report a swapped mapping.
-5. AI triage  (optional) Claude classifies findings using Anduin's form-design conventions
+6. AI triage  (optional) Claude classifies findings using Anduin's form-design conventions
 ```
 
 Everything except the optional AI call runs **locally in the browser**. Files are never uploaded. The AI step sends only short snippets and diffs to the Anthropic API using the key you enter (stored in your browser only if you tick *remember*).
@@ -52,7 +62,7 @@ Keyboard: `j` / `k` (or ↓ / ↑) move through findings.
 
 ## Tech
 
-- Vanilla JS (ES modules), no build step, hosted on GitHub Pages
+- Vanilla JS (ES modules), no build step, hosted on Vercel
 - [PDF.js](https://mozilla.github.io/pdf.js/) for text extraction and page rendering
 - Claude (Anthropic Messages API) for AI triage
 - `core.js` is isomorphic: the same engine runs in Node for tests
@@ -71,9 +81,9 @@ npm start          # serves the app at http://localhost:8080
 
 - **Revision impact:** diff sub doc v1 against v2 and use the form↔PDF alignment map to list the widgets that must change
 - Checklist import: verify custom language, gating questions and disabled-page tooltips against the checklist sheet
-- Fund-aware matching: compare each fund-specific variant only with its own sub doc
+- Fund-aware matching: read the form rules to know exactly which fund sees which variant
 - Pull the form and annotation directly by Form Version ID (like White Tree), and ship as a White Tree tool
-- Benchmark mode: score findings against a form's ClickUp bug list
+- Built-in benchmark mode: score findings against a form's ClickUp bug list
 
 ## Privacy
 

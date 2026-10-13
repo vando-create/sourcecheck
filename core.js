@@ -493,6 +493,7 @@ export function analyze(form, pdfDocs, opts = {}) {
     if (b.toks.length < minBlockTokens) continue;
     const allowed = allowedFor(b);
     let best = null, bestAllowed = null;
+    const perDoc = new Map();
     for (let di = 0; di < nDocs; di++) {
       const ms = locate(corpus, b.toks, new Set([di]), true);
       if (!ms.length) continue;
@@ -500,11 +501,12 @@ export function analyze(form, pdfDocs, opts = {}) {
       const m = ms.reduce((a, c) => (better(c, a) ? c : a), null);
       if (better(m, best)) best = m;
       if ((!allowed || allowed.has(di)) && better(m, bestAllowed)) bestAllowed = m;
+      if (!allowed || allowed.has(di)) perDoc.set(di, m);
     }
     // prefer the PDF(s) this widget is mapped into, unless another PDF matches much better
     let m = bestAllowed && bestAllowed.coverage >= 0.6 ? bestAllowed : best;
     if (bestAllowed && best && best !== bestAllowed && best.score * best.coverage - bestAllowed.score * bestAllowed.coverage < 0.05) m = bestAllowed;
-    results.push({ b, m });
+    results.push({ b, m, perDoc });
   }
 
   // pass 1b: short labels ("(Name)", "Yes", "Tax Documents") — mark them covered on the pages their widget prints to
@@ -548,8 +550,22 @@ export function analyze(form, pdfDocs, opts = {}) {
     return [...byPage.entries()].map(([k, boxes]) => { const [doc, page] = k.split(':').map(Number); return { doc, page: page + 1, boxes }; });
   };
 
+  // Per-PDF comparison. A form text must match EVERY sub doc it prints into, unless another form
+  // element (e.g. a fund-specific variant) carries that sub doc's wording exactly.
+  const okMatch = (x) => x && x.coverage >= 0.6 && x.score >= 0.5;
+  const exactBy = new Int32Array(corpus.tokens.length).fill(-1);
+  for (const r of results) {
+    r.docDiffs = [];
+    for (const [di, md] of r.perDoc) {
+      if (!okMatch(md)) continue;
+      const d = buildDiff(r.b, corpus, md, coveredBy);
+      r.docDiffs.push({ di, m: md, ...d });
+      if (!d.significant) for (let j = md.start; j <= md.end; j++) if (exactBy[j] < 0) exactBy[j] = r.b.id;
+    }
+  }
+  const shortName = (di) => pdfDocs[di].name.replace(/\.pdf$/i, '');
   let matched = 0;
-  for (const { b, m } of results) {
+  for (const { b, m, docDiffs } of results) {
     const base = { formKey: b.key, widgetType: b.type, field: b.field, formPage: b.widget.path || b.widget.pageTitle, formText: b.text, optionKey: b.optionKey };
     const minCov = b.toks.length < 10 ? 0.75 : 0.5;
     if (!m || m.coverage < minCov || m.score < 0.45) {
@@ -558,12 +574,28 @@ export function analyze(form, pdfDocs, opts = {}) {
       continue;
     }
     matched++;
-    const { ops, significant, critical } = buildDiff(b, corpus, m, coveredBy);
-    if (!significant) continue;
+    let cands = docDiffs.length ? docDiffs : [{ di: m.doc, m, ...buildDiff(b, corpus, m, coveredBy) }];
+    const exact = cands.filter(x => !x.significant);
+    // a differing sub doc is fine if another form element reproduces its wording exactly
+    const unresolved = cands.filter(x => {
+      if (!x.significant) return false;
+      if (!exact.length) return true; // matches no sub doc word for word
+      let other = 0; for (let j = x.m.start; j <= x.m.end; j++) if (exactBy[j] >= 0 && exactBy[j] !== b.id) other++;
+      return other / (x.m.end - x.m.start + 1) < 0.8;
+    });
+    if (!unresolved.length) continue;
+    unresolved.sort((a, c) => a.significant - c.significant);
+    const pick = unresolved[0];
+    const { ops, significant, critical } = pick;
+    const mm = pick.m;
     const diff = ops.map(op => ({ type: op.type, form: op.form.map(i => b.raws[i]).join(' '), pdf: op.pdf.map(j => { const r = corpus.refs[j]; return pdfDocs[r.doc].pages[r.page].lines[r.line].words[r.word].raw; }).join(' ') }));
     const changedPdf = ops.filter(o => o.type === 'chg').flatMap(o => o.pdf);
     const sev = critical || significant >= 8 || (significant >= 4 && significant / b.toks.length > 0.3) ? 'high' : significant >= 3 ? 'medium' : 'low';
-    findings.push({ ...base, kind: 'text_mismatch', severity: sev, changed: significant, score: +m.score.toFixed(3), pdfText: refText(m.start, m.end), loc: locOf(m.start), diff, highlights: boxesOf(range(m.start, m.end)), changedHighlights: boxesOf(changedPdf) });
+    const variants = unresolved.slice(1).map(x => ({ pdf: pdfDocs[x.di].name, page: corpus.refs[x.m.start].page + 1, changed: x.significant }));
+    let note;
+    if (exact.length) note = `Matches ${exact.map(x => shortName(x.di)).join(', ')} word for word, but differs from ${unresolved.map(x => shortName(x.di)).join(', ')} — and no other form element carries that sub doc's wording. Check that each fund sees its own version.`;
+    else if (variants.length) note = `Also differs from ${variants.map(v => shortName(pdfDocs.findIndex(d => d.name === v.pdf))).join(', ')}.`;
+    findings.push({ ...base, kind: 'text_mismatch', severity: sev, changed: significant, score: +mm.score.toFixed(3), pdfText: refText(mm.start, mm.end), loc: locOf(mm.start), diff, highlights: boxesOf(range(mm.start, mm.end)), changedHighlights: boxesOf(changedPdf), fundVariant: exact.length > 0, variants, note });
   }
 
   // pass 2: PDF content not covered by any form block (only on digitized pages)
@@ -580,10 +612,21 @@ export function analyze(form, pdfDocs, opts = {}) {
     const pageTot = new Map(), pageUnc = new Map();
     for (let j = s; j < e; j++) { const pg = corpus.refs[j].page + 1; pageTot.set(pg, (pageTot.get(pg) || 0) + 1); if (coveredBy[j] < 0) pageUnc.set(pg, (pageUnc.get(pg) || 0) + 1); }
     let runStart = -1;
+    const medSize = new Map();
+    const pageMedian = (pg) => {
+      if (!medSize.has(pg)) { const sz = d.pages[pg - 1].lines.filter(l => !l.skip).map(l => l.size).sort((a, b) => a - b); medSize.set(pg, sz[Math.floor(sz.length / 2)] || 10); }
+      return medSize.get(pg);
+    };
+    const isFootnoteRun = (a, b) => {
+      for (let j = a; j < b; j++) { const r = corpus.refs[j]; const l = d.pages[r.page].lines[r.line]; if (l.y0 < 0.55 || l.size >= pageMedian(r.page + 1) * 0.93) return false; }
+      return true;
+    };
     const flush = (endIdx) => {
       if (runStart < 0) return;
       const len = endIdx - runStart;
-      if (len >= minMissingRun) {
+      if (len >= 3 && len < minMissingRun && isFootnoteRun(runStart, endIdx)) {
+        findings.push({ kind: 'missing_in_form', severity: 'medium', pdfText: refText(runStart, endIdx - 1), loc: locOf(runStart), words: len, highlights: boxesOf(range(runStart, endIdx - 1)), formPage: '', formText: '', note: 'Short PDF footnote that no form element carries.' });
+      } else if (len >= minMissingRun) {
         const text = refText(runStart, endIdx - 1);
         const letters = text.replace(/[^a-z]/gi, '').length;
         const pg = corpus.refs[runStart].page + 1;
