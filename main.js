@@ -1,8 +1,12 @@
-import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/legacy/build/pdf.min.mjs';
 import { parseForm, extractPdf, analyze, autoAssign } from './core.js';
 import { triage, DEFAULT_MODEL } from './ai.js';
 
-pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/legacy/build/pdf.worker.min.mjs';
+// Deployment config (config.js). The self-hosted build serves PDF.js from ./vendor/ and can turn AI off.
+const CFG = window.SC_CONFIG || {};
+const PDFJS_BASE = new URL(CFG.pdfjsBase || 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/legacy/build/', location.href).href;
+const pdfjs = await import(PDFJS_BASE + 'pdf.min.mjs');
+pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.mjs';
+const AI_ENABLED = CFG.aiEnabled !== false;
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -290,7 +294,8 @@ function renderDetail(f) {
     store.set('mine:' + formSig(), S.mine); renderDetail(f); renderList();
   });
   el.querySelector('[data-act="clickup"]').onclick = () => copy(clickupText(f), 'Copied: paste it into a ClickUp task');
-  el.querySelector('[data-act="ai"]').onclick = () => runAI([f]);
+  const askAI = el.querySelector('[data-act="ai"]');
+  if (AI_ENABLED) askAI.onclick = () => runAI([f]); else askAI.remove();
   if (f.loc) {
     let page = f.loc.page;
     const draw = () => { $('#pg-lbl').textContent = 'p.' + page; renderPage(f, page); };
@@ -469,3 +474,10 @@ document.addEventListener('keydown', (e) => {
   if (next) { e.preventDefault(); select(next.id); document.querySelector(`.item[data-id="${next.id}"]`)?.scrollIntoView({ block: 'nearest' }); }
 });
 let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (S.selected && !$('#results').hidden) renderDetail(S.report.findings.find(f => f.id === S.selected)); }, 250); });
+
+// deployment options
+if (!AI_ENABLED) {
+  ['#btn-ai-settings', '#btn-ai-run'].forEach(sel => $(sel).remove());
+  document.body.classList.add('no-ai');
+}
+if (CFG.environmentLabel) $('.brand-tag').textContent = CFG.environmentLabel;

@@ -62,7 +62,7 @@ Keyboard: `j` / `k` (or ↓ / ↑) move through findings.
 
 ## Tech
 
-- Vanilla JS (ES modules), no build step, hosted on Vercel
+- Vanilla JS (ES modules), no build step. Public demo on Vercel; internal deployment via Docker on Dokploy
 - [PDF.js](https://mozilla.github.io/pdf.js/) for text extraction and page rendering
 - Claude (Anthropic Messages API) for AI triage
 - `core.js` is isomorphic: the same engine runs in Node for tests
@@ -84,6 +84,34 @@ npm start          # serves the app at http://localhost:8080
 - Fund-aware matching: read the form rules to know exactly which fund sees which variant
 - Pull the form and annotation directly by Form Version ID (like White Tree), and ship as a White Tree tool
 - Built-in benchmark mode: score findings against a form's ClickUp bug list
+
+## Self-hosting for client documents (Dokploy)
+
+The public Vercel demo loads PDF.js from a CDN and offers AI triage. For real client files, deploy the Docker image instead:
+
+- PDF.js is bundled into the image and Google Fonts are removed, so the page makes **no third-party requests**
+- A strict Content-Security-Policy (`connect-src 'self'`) blocks the browser from sending data anywhere else, even if a script tried
+- AI triage is **off** by default (`AI_ENABLED=false`). Turning it on only allows `https://api.anthropic.com`, and only with InfoSec approval
+- Files are still processed only in the user's browser. The server stores nothing, so no database is needed
+
+**Dokploy:** create an Application, set Provider to this GitHub repo (branch `main`, build path `/`), set Build Type to `Dockerfile` (path `Dockerfile`), set Domain to `sourcecheck.anduincapital.dev` with container port `80`, then Deploy.
+
+| Env var | Default | Meaning |
+|---|---|---|
+| `AI_ENABLED` | `false` | `true` shows AI triage and allows connections to `api.anthropic.com` |
+| `ENVIRONMENT_LABEL` | `Internal · client files stay in your browser` | Subtitle shown in the header |
+
+Local test: `docker build -t sourcecheck . && docker run -p 8080:80 sourcecheck`
+
+### Google sign-in (Anduin accounts only)
+
+`docker-compose.yml` puts [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) in front of the app. Every request, including the JS files, needs a Google sign-in with an `@anduintransact.com` account. The app container is never exposed directly.
+
+1. Ask the Google Workspace admin for an OAuth client (Google Cloud console → APIs & Services → Credentials → OAuth client ID → *Web application*, consent screen type **Internal**). Authorized redirect URI: `https://sourcecheck.anduincapital.dev/oauth2/callback`
+2. In Dokploy create a **Compose** service from this repo (compose path `docker-compose.yml`) and set the environment variables from `.env.example`. `COOKIE_SECRET`: `openssl rand -base64 32 | tr -- '+/' '-_'`
+3. Domain: `sourcecheck.anduincapital.dev` → service `auth`, port `4180`. Deploy.
+
+If InfoSec already puts `*.anduincapital.dev` behind company SSO, use the plain Dockerfile application instead and skip this.
 
 ## Privacy
 
