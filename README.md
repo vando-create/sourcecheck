@@ -93,8 +93,11 @@ The public Vercel demo loads PDF.js from a CDN and offers AI triage. For real cl
 - A strict Content-Security-Policy (`connect-src 'self'`) blocks the browser from sending data anywhere else, even if a script tried
 - AI triage is **off** by default (`AI_ENABLED=false`). Turning it on only allows `https://api.anthropic.com`, and only with InfoSec approval
 - Files are still processed only in the user's browser. The server stores nothing, so no database is needed
+- Sign-in is handled by Anduin's Cloudflare Access: every `*.anduincapital.dev` address requires a Google Workspace sign-in with an `@anduintransact.com` account before any page or file is served
 
-**Dokploy:** create an Application, set Provider to this GitHub repo (branch `main`, build path `/`), set Build Type to `Dockerfile` (path `Dockerfile`), set Domain to `sourcecheck.anduincapital.dev` with container port `80`, then Deploy.
+**Internal app:** https://sourcecheck.anduincapital.dev (Anduin sign-in required)
+
+**Dokploy setup:** an Application with Provider `Git` (`https://github.com/vando-create/sourcecheck.git`, branch `main`, build path `/`), Build Type `Dockerfile` (path `Dockerfile`), and Domain `sourcecheck.anduincapital.dev` on container port `80`. A GitHub webhook calls the app's Dokploy deploy URL on every push to `main`, so changes go live in about a minute.
 
 | Env var | Default | Meaning |
 |---|---|---|
@@ -102,16 +105,6 @@ The public Vercel demo loads PDF.js from a CDN and offers AI triage. For real cl
 | `ENVIRONMENT_LABEL` | `Internal · client files stay in your browser` | Subtitle shown in the header |
 
 Local test: `docker build -t sourcecheck . && docker run -p 8080:80 sourcecheck`
-
-### Google sign-in (Anduin accounts only)
-
-`docker-compose.yml` puts [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) in front of the app. Every request, including the JS files, needs a Google sign-in with an `@anduintransact.com` account. The app container is never exposed directly.
-
-1. Ask the Google Workspace admin for an OAuth client (Google Cloud console → APIs & Services → Credentials → OAuth client ID → *Web application*, consent screen type **Internal**). Authorized redirect URI: `https://sourcecheck.anduincapital.dev/oauth2/callback`
-2. In Dokploy create a **Compose** service from this repo (compose path `docker-compose.yml`) and set the environment variables from `.env.example`. `COOKIE_SECRET`: `openssl rand -base64 32 | tr -- '+/' '-_'`
-3. Domain: `sourcecheck.anduincapital.dev` → service `auth`, port `4180`. Deploy.
-
-If InfoSec already puts `*.anduincapital.dev` behind company SSO, use the plain Dockerfile application instead and skip this.
 
 ## Privacy
 
