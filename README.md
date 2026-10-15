@@ -97,7 +97,7 @@ The public Vercel demo loads PDF.js from a CDN and offers AI triage. For real cl
 
 **Internal app:** https://sourcecheck.anduincapital.dev (Anduin sign-in required)
 
-**Dokploy setup:** an Application with Provider `Git` (`https://github.com/vando-create/sourcecheck.git`, branch `main`, build path `/`), Build Type `Dockerfile` (path `Dockerfile`), and Domain `sourcecheck.anduincapital.dev` on container port `80`. A GitHub webhook calls the app's Dokploy deploy URL on every push to `main`, so changes go live in about a minute.
+**Dokploy setup:** an Application with Provider `GitHub` (via a Dokploy GitHub App installed on this repo only; branch `main`, build path `/`), Build Type `Dockerfile` (path `Dockerfile`), and Domain `sourcecheck.anduincapital.dev` on container port `80`. Autodeploy is on, so every push to `main` redeploys the internal app in about a minute. (A plain webhook to Dokploy's deploy URL does not work, because the Dokploy server is also behind Cloudflare Access; only the signed GitHub App endpoint is reachable from GitHub.)
 
 | Env var | Default | Meaning |
 |---|---|---|
