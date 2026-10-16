@@ -93,11 +93,35 @@ The public Vercel demo loads PDF.js from a CDN and offers AI triage. For real cl
 - A strict Content-Security-Policy (`connect-src 'self'`) blocks the browser from sending data anywhere else, even if a script tried
 - AI triage is **off** by default (`AI_ENABLED=false`). Turning it on only allows `https://api.anthropic.com`, and only with InfoSec approval
 - Files are still processed only in the user's browser. The server stores nothing, so no database is needed
-- Sign-in is handled by Anduin's Cloudflare Access: every `*.anduincapital.dev` address requires a Google Workspace sign-in with an `@anduintransact.com` account before any page or file is served
+- Two sign-ins protect the internal app: Anduin's Cloudflare Access (all `*.anduincapital.dev` addresses) and a dedicated Google sign-in gate ([oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/)) that only admits `@anduintransact.com` accounts. The app container has no public address; only the gate does
 
 **Internal app:** https://sourcecheck.anduincapital.dev (Anduin sign-in required)
 
-**Dokploy setup:** an Application with Provider `GitHub` (via a Dokploy GitHub App installed on this repo only; branch `main`, build path `/`), Build Type `Dockerfile` (path `Dockerfile`), and Domain `sourcecheck.anduincapital.dev` on container port `80`. Autodeploy is on, so every push to `main` redeploys the internal app in about a minute. (A plain webhook to Dokploy's deploy URL does not work, because the Dokploy server is also behind Cloudflare Access; only the signed GitHub App endpoint is reachable from GitHub.)
+**Dokploy setup** (two Applications in one project):
+
+1. `sourcecheck`: Provider `GitHub` (via a Dokploy GitHub App installed on this repo only; branch `main`), Build Type `Dockerfile`, **no domain**. Autodeploy is on, so every push to `main` redeploys it in about a minute.
+2. `sourcecheck-auth`: Provider `Docker`, image `quay.io/oauth2-proxy/oauth2-proxy:v7.6.0`, Domain `sourcecheck.anduincapital.dev` on container port `4180`. Environment:
+
+```
+OAUTH2_PROXY_PROVIDER=google
+OAUTH2_PROXY_CLIENT_ID=<Google OAuth client ID>
+OAUTH2_PROXY_CLIENT_SECRET=<Google OAuth client secret>
+OAUTH2_PROXY_COOKIE_SECRET=<python3 -c "import secrets,base64;print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())">
+OAUTH2_PROXY_REDIRECT_URL=https://sourcecheck.anduincapital.dev/oauth2/callback
+OAUTH2_PROXY_EMAIL_DOMAINS=anduintransact.com
+OAUTH2_PROXY_UPSTREAMS=http://<sourcecheck app name in Dokploy>:80/
+OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180
+OAUTH2_PROXY_REVERSE_PROXY=true
+OAUTH2_PROXY_SKIP_PROVIDER_BUTTON=true
+OAUTH2_PROXY_COOKIE_SECURE=true
+OAUTH2_PROXY_COOKIE_SAMESITE=lax
+OAUTH2_PROXY_COOKIE_EXPIRE=12h
+OAUTH2_PROXY_COOKIE_NAME=_sourcecheck_auth
+```
+
+The Google OAuth client lives in a Google Cloud project under the anduintransact.com organization, with the consent screen set to **Internal** (only Workspace accounts can sign in) and the redirect URI above. Secrets are entered only in Dokploy, never in this repo.
+
+A plain webhook to Dokploy's deploy URL does not work, because the Dokploy server is also behind Cloudflare Access; only the signed GitHub App endpoint is reachable from GitHub.
 
 | Env var | Default | Meaning |
 |---|---|---|
